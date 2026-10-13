@@ -21,7 +21,8 @@ export type MassConfig = {
 	search: { iterations: number; seed_base: number };
 	collection: { candidates: number; train_ranks: number; validation_rank: number; seed_base: number };
 	ranking: { opponents_per_episode: number; seed: number };
-	episode: { timeout_ms: number; thinking_level: string };
+	/** temperature: forwarded when set (unset = provider default). seed: fixed seed for every episode instead of the per-episode one (normally unset). */
+	episode: { timeout_ms: number; thinking_level: string; temperature?: number; seed?: number };
 };
 
 export type Ctx = { c: MassConfig; cfg: MlxConfig; root: string; base: string; log: (s: string) => void; fetchImpl?: typeof fetch; retryFailed?: boolean };
@@ -32,6 +33,9 @@ export function validate(c: MassConfig): MassConfig {
 	if (c.search.iterations < 1) throw new Error("At least one RHI update is required");
 	if (c.collection.validation_rank !== c.collection.train_ranks + 1) throw new Error("Validation must immediately follow the selected training ranks");
 	if (c.collection.candidates < c.collection.validation_rank) throw new Error("Too few collection candidates");
+	const { temperature, seed } = c.episode;
+	if (temperature !== undefined && !(typeof temperature === "number" && Number.isFinite(temperature) && temperature >= 0)) throw new Error("episode.temperature must be a finite number >= 0");
+	if (seed !== undefined && !Number.isSafeInteger(seed)) throw new Error("episode.seed must be an integer");
 	return c;
 }
 
@@ -64,7 +68,7 @@ export function workflowPrompt(x: Ctx, q: number, version: number): string {
 }
 
 async function episode(x: Ctx, prompt: string, workspace: string, logs: string, seed: number, condition: string, check?: string) {
-	return runEpisode({ cfg: x.cfg, prompt, workspace, logs, seed, condition, check, timeoutMs: x.c.episode.timeout_ms, thinkingLevel: x.c.episode.thinking_level, log: x.log, retryFailed: x.retryFailed });
+	return runEpisode({ cfg: x.cfg, prompt, workspace, logs, seed: x.c.episode.seed ?? seed, temperature: x.c.episode.temperature, condition, check, timeoutMs: x.c.episode.timeout_ms, thinkingLevel: x.c.episode.thinking_level, log: x.log, retryFailed: x.retryFailed });
 }
 
 const OPT_SCHEMA = {

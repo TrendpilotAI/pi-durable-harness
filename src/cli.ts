@@ -8,8 +8,8 @@ import { SessionManager, sessionsRoot } from "./session.ts";
 const USAGE = `pdh — durable pi coding-agent sessions on local mlx-serve, plus a local MASS loop
 
 Sessions:
-  pdh start  [--cwd DIR] [--id ID] [--team] [--thinking off|low|medium|high] [--timeout-ms N] [--detach-id] (PROMPT | --prompt-file F)
-  pdh resume ID [--prompt TEXT] [--timeout-ms N]
+  pdh start  [--cwd DIR] [--id ID] [--team] [--thinking off|low|medium|high] [--timeout-ms N] [--temperature T] [--seed N] (PROMPT | --prompt-file F)
+  pdh resume ID [--prompt TEXT] [--timeout-ms N] [--temperature T] [--seed N]
   pdh list   [--json]
   pdh status ID
   pdh transcript ID
@@ -33,6 +33,8 @@ async function main() {
 			team: { type: "boolean" },
 			thinking: { type: "string" },
 			"timeout-ms": { type: "string" },
+			temperature: { type: "string" },
+			seed: { type: "string" },
 			prompt: { type: "string" },
 			"prompt-file": { type: "string" },
 			json: { type: "boolean" },
@@ -42,13 +44,14 @@ async function main() {
 		},
 	});
 	const timeoutMs = values["timeout-ms"] ? Number(values["timeout-ms"]) : undefined;
+	const sampling = { temperature: values.temperature !== undefined ? Number(values.temperature) : undefined, seed: values.seed !== undefined ? Number(values.seed) : undefined };
 	const sm = () => new SessionManager(sessionsRoot());
 	switch (cmd) {
 		case "start": {
 			const prompt = values["prompt-file"] ? readFileSync(values["prompt-file"], "utf8") : positionals.join(" ");
 			if (!prompt.trim()) throw new Error("start needs a prompt");
 			const m = sm();
-			const meta = m.create({ prompt, cwd: values.cwd ?? process.cwd(), id: values.id, team: values.team, thinkingLevel: values.thinking });
+			const meta = m.create({ prompt, cwd: values.cwd ?? process.cwd(), id: values.id, team: values.team, thinkingLevel: values.thinking, sampling });
 			console.log(`session ${meta.id}`); // printed before running so a killed run can be resumed by id
 			const done = await m.run(meta.id, { timeoutMs, onEvent: ev });
 			console.log(JSON.stringify({ id: done.id, status: done.status, answer: done.prompts.at(-1)?.answerText }, null, 2));
@@ -57,7 +60,7 @@ async function main() {
 		case "resume": {
 			const id = positionals[0];
 			if (!id) throw new Error("resume needs a session id");
-			const done = await sm().resume(id, { prompt: values.prompt, timeoutMs, onEvent: ev });
+			const done = await sm().resume(id, { prompt: values.prompt, timeoutMs, sampling, onEvent: ev });
 			console.log(JSON.stringify({ id: done.id, status: done.status, runs: done.runs.length, answer: done.prompts.at(-1)?.answerText }, null, 2));
 			break;
 		}

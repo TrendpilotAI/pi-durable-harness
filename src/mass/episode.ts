@@ -13,7 +13,10 @@ export type EpisodeOptions = {
 	prompt: string; // path of the prompt file
 	workspace: string;
 	logs: string;
+	/** Forwarded as the request `seed` of every model call of the episode. */
 	seed: number;
+	/** Forwarded as `temperature` when set; unset keeps the provider default. */
+	temperature?: number;
 	condition: string;
 	check?: string; // task check script, run in the workspace after the episode
 	timeoutMs?: number;
@@ -86,9 +89,10 @@ export async function runEpisode(o: EpisodeOptions): Promise<any> {
 	let failure: unknown = null;
 	try {
 		const exists = existsSync(join(o.logs, "session", "episode", "meta.json"));
-		if (!exists) sessions.create({ id: "episode", prompt: readFileSync(o.prompt, "utf8"), cwd: o.workspace, team: true, thinkingLevel: o.thinkingLevel ?? "off" });
+		const sampling = { seed: o.seed, temperature: o.temperature };
+		if (!exists) sessions.create({ id: "episode", prompt: readFileSync(o.prompt, "utf8"), cwd: o.workspace, team: true, thinkingLevel: o.thinkingLevel ?? "off", sampling });
 		else log(`[episode] ${o.condition}: resuming durable session after interruption`);
-		const runOpts = { baseUrl: proxy.url, timeoutMs: o.timeoutMs, onEvent: (s: string) => log(`[${o.condition}] ${s}`) };
+		const runOpts = { baseUrl: proxy.url, timeoutMs: o.timeoutMs, sampling, onEvent: (s: string) => log(`[${o.condition}] ${s}`) };
 		meta = retry ? await sessions.resume("episode", { ...runOpts, prompt: CONTINUE_PROMPT }) : await sessions.run("episode", runOpts);
 	} catch (e) {
 		failure = { error: String(e) };
@@ -105,6 +109,7 @@ export async function runEpisode(o: EpisodeOptions): Promise<any> {
 		model: o.cfg.model.id,
 		endpoint: o.cfg.baseUrl,
 		seed: o.seed,
+		sampling: { seed: o.seed, seed_forwarded: true, temperature: o.temperature ?? null },
 		qwen_code_version: null,
 		runtime: RUNTIME,
 		exit_code: success ? 0 : 1,

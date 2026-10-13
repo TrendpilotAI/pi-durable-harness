@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { closeSync, existsSync, linkSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { harnessHome, loadMlxConfig, type MlxConfig } from "./config.ts";
-import { mlxModels } from "./provider.ts";
+import { mlxModels, type Sampling } from "./provider.ts";
 import { assistantText, TeamExtension } from "./subagent.ts";
 
 export type SessionStatus = "created" | "running" | "done" | "unanswered" | "aborted" | "interrupted";
@@ -22,6 +22,8 @@ export type SessionMeta = {
 	thinkingLevel: string;
 	team: boolean;
 	instructions?: string;
+	/** Sent with every model request of the session, sub-agents included; absent fields use provider defaults. */
+	sampling?: Sampling;
 	prompts: { requestId: string; content: string; submissionId?: number; status?: string; answerText?: string }[];
 	status: SessionStatus;
 	pid?: number;
@@ -36,6 +38,8 @@ export type RunOptions = {
 	onEvent?: (line: string) => void;
 	models?: Models;
 	extraExtensions?: Extension[];
+	/** Merged into the session's stored sampling (defined fields win) before the run. */
+	sampling?: Sampling;
 	/** When a run ends `unanswered` with a model error (e.g. a server-side decode failure), queue up to this many durable "continue" inputs. Default 2. */
 	autoContinue?: number;
 };
@@ -55,6 +59,14 @@ function isAlive(pid: number | undefined): boolean {
 	} catch {
 		return false;
 	}
+}
+
+/** `over`'s defined fields on top of `base`; undefined when the result is empty. */
+export function mergeSampling(base: Sampling | undefined, over: Sampling | undefined): Sampling | undefined {
+	const out: Sampling = { ...base };
+	if (over?.temperature !== undefined) out.temperature = over.temperature;
+	if (over?.seed !== undefined) out.seed = over.seed;
+	return out.temperature !== undefined || out.seed !== undefined ? out : undefined;
 }
 
 /** Lock files held by this process; a lock naming our pid that is not in here is stale (pid reuse). */
@@ -149,7 +161,7 @@ export class SessionManager {
 		renameSync(p + ".tmp", p); // atomic replace
 	}
 
-	create(opts: { prompt: string; cwd: string; id?: string; thinkingLevel?: string; team?: boolean; instructions?: string }): SessionMeta {
+	create(opts: { prompt: string; cwd: string; id?: string; thinkingLevel?: string; team?: boolean; instructions?: string; sampling?: Sampling }): SessionMeta {
 		const id = opts.id ?? `s-${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14)}-${randomUUID().slice(0, 8)}`;
 		const d = this.dir(id);
 		if (existsSync(join(d, "meta.json"))) throw new Error(`session exists: ${id}`);
@@ -166,6 +178,7 @@ export class SessionManager {
 			thinkingLevel: opts.thinkingLevel ?? "off",
 			team: opts.team ?? false,
 			instructions: opts.instructions,
+			sampling: mergeSampling(undefined, opts.sampling),
 			prompts: [{ requestId: `start:${id}`, content: opts.prompt }],
 			status: "created",
 			runs: [],
@@ -188,7 +201,7 @@ export class SessionManager {
 		registry.install(CodingTools);
 		if (meta.team) registry.install(TeamExtension);
 		for (const e of opts.extraExtensions ?? []) registry.install(e);
-		const models = opts.models ?? mlxModels(this.cfg, opts.baseUrl);
+		const models = opts.models ?? mlxModels(this.cfg, opts.baseUrl, meta.sampling);
 		const storage = await openNodeSqliteStorage(join(this.dir(meta.id), "session.sqlite"));
 		const harness = await Harness.open(
 			storage,
@@ -221,6 +234,8 @@ export class SessionManager {
 		let opened: Awaited<ReturnType<SessionManager["open"]>>;
 		try {
 			meta = this.readMeta(id); // re-read under the lock
+			const sampling = mergeSampling(meta.sampling, opts.sampling);
+			if (sampling) meta.sampling = sampling;
 			meta.status = "running";
 			meta.pid = process.pid;
 			meta.runs.push({ pid: process.pid, startedAt: new Date().toISOString() });
