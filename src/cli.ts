@@ -27,12 +27,39 @@ const TRAIN_DEFERRED = `DEFERRED: LoRA post-training is not implemented in this 
 pdh mass cycle stops after render. The SFT hand-off data is runs/<run>/data/{train,val}.jsonl.
 See docs/MASS.md#post-training-deferred for the (unverified) mlx_lm.lora plan.`;
 
+/** Bad command-line input: reported without a stack, exit code 2. */
+class UsageError extends Error {}
+
+/** Parse a numeric option; undefined when absent. */
+function numberOption(name: string, raw: string | undefined, rule: "positive-int" | "int" | "non-negative"): number | undefined {
+	if (raw === undefined) return undefined;
+	const n = raw.trim() === "" ? NaN : Number(raw);
+	const ok = rule === "positive-int" ? Number.isSafeInteger(n) && n > 0 : rule === "int" ? Number.isSafeInteger(n) : Number.isFinite(n) && n >= 0;
+	const want = rule === "positive-int" ? "a positive integer" : rule === "int" ? "an integer" : "a finite number >= 0";
+	if (!ok) throw new UsageError(`--${name} must be ${want}, got ${JSON.stringify(raw)}`);
+	return n;
+}
+
+function tasksOption(raw: string | undefined): number[] | undefined {
+	if (raw === undefined) return undefined;
+	const parts = raw.split(",").map((t) => t.trim());
+	if (parts.some((t) => !/^\d+$/.test(t))) throw new UsageError(`--tasks must be a comma-separated list of task ids (e.g. 1,2), got ${JSON.stringify(raw)}`);
+	return parts.map(Number);
+}
+
+/** Turn node:util parseArgs errors (strict mode) into one-line messages. */
+function friendlyParseError(e: any): Error {
+	const hint = "Run 'pdh' with no arguments for usage.";
+	if (e?.code === "ERR_PARSE_ARGS_UNKNOWN_OPTION") return new UsageError(`unknown option '${/'([^']+)'/.exec(String(e.message))?.[1]}'. ${hint}`);
+	if (e?.code === "ERR_PARSE_ARGS_INVALID_OPTION_VALUE") return new UsageError(`${e.message}. ${hint}`);
+	return e;
+}
+
 const ev = (s: string) => console.error(`${new Date().toISOString()} ${s}`);
 
-async function main() {
-	const [cmd, ...rest] = process.argv.slice(2);
-	const { values, positionals } = parseArgs({
-		args: rest,
+const parse = (args: string[]) =>
+	parseArgs({
+		args,
 		allowPositionals: true,
 		options: {
 			cwd: { type: "string" },
@@ -50,8 +77,19 @@ async function main() {
 			"retry-failed": { type: "boolean" },
 		},
 	});
-	const timeoutMs = values["timeout-ms"] ? Number(values["timeout-ms"]) : undefined;
-	const sampling = { temperature: values.temperature !== undefined ? Number(values.temperature) : undefined, seed: values.seed !== undefined ? Number(values.seed) : undefined };
+
+async function main() {
+	const [cmd, ...rest] = process.argv.slice(2);
+	let parsed;
+	try {
+		parsed = parse(rest);
+	} catch (e) {
+		throw friendlyParseError(e);
+	}
+	const { values, positionals } = parsed;
+	const timeoutMs = numberOption("timeout-ms", values["timeout-ms"], "positive-int");
+	const sampling = { temperature: numberOption("temperature", values.temperature, "non-negative"), seed: numberOption("seed", values.seed, "int") };
+	const tasks = tasksOption(values.tasks);
 	const sm = () => new SessionManager(sessionsRoot());
 	switch (cmd) {
 		case "start": {
@@ -108,7 +146,6 @@ async function main() {
 			}
 			const x = makeCtx(values.config!, (s) => ev(s));
 			x.retryFailed = values["retry-failed"];
-			const tasks = values.tasks ? values.tasks.split(",").map(Number) : undefined;
 			if (stage === "search") for (const q of tasks ?? x.c.tasks.train) await searchTask(x, q);
 			else if (stage === "collect") await collect(x, tasks ?? x.c.tasks.train);
 			else if (stage === "rank") await rank(x, tasks ?? x.c.tasks.train);
@@ -125,5 +162,5 @@ async function main() {
 
 main().catch((e) => {
 	console.error(`error: ${e?.message ?? e}`);
-	process.exit(1);
+	process.exit(e instanceof UsageError ? 2 : 1);
 });

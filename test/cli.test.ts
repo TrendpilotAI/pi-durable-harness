@@ -31,3 +31,22 @@ describe("cli: mass", () => {
 		expect(body).not.toMatch(/train\s*\(/);
 	});
 });
+
+describe("cli: option validation", () => {
+	it.each([
+		[["start", "--timeout-ms", "abc", "x"], /--timeout-ms must be a positive integer, got "abc"/],
+		[["start", "--timeout-ms", "0", "x"], /--timeout-ms must be a positive integer/],
+		[["resume", "s1", "--temperature", "hot"], /--temperature must be a finite number >= 0, got "hot"/],
+		[["resume", "s1", "--temperature", "Infinity"], /--temperature must be a finite number >= 0/],
+		[["start", "--seed", "1.5", "x"], /--seed must be an integer, got "1.5"/],
+		[["mass", "rank", "--tasks", "1,x"], /--tasks must be a comma-separated list of task ids/],
+		[["start", "--bogus", "x"], /unknown option '--bogus'\. Run 'pdh' with no arguments for usage\./],
+		[["start", "--timeout-ms"], /Option '--timeout-ms <value>' argument missing/],
+	])("%j", (args, msg) => {
+		const r = pdh(...args);
+		expect(r.code).toBe(2);
+		expect(r.err).toMatch(msg);
+		expect(r.err).not.toMatch(/\n\s+at /); // no stack trace
+	});
+});
+
