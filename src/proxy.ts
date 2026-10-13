@@ -4,7 +4,8 @@
  * appended to the log with the parsed request body and the response, a streamed chat completion
  * reassembled into one message (content, reasoning_content, tool_calls, finish_reason, usage).
  * The record shape matches what MASS training/prepare_sft_data.py reads from api_requests.jsonl.
- * Listens on 127.0.0.1 on an ephemeral port; it never changes the upstream server.
+ * Listens on 127.0.0.1 on an ephemeral port; it never changes the upstream server. `maxConcurrent` (default
+ * PDH_MAX_CONCURRENT, 0 = unlimited) bounds the requests in flight to the upstream; the rest wait in arrival order.
  */
 import { appendFileSync, mkdirSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -77,6 +78,38 @@ export function assembleSse(raw: string): Record<string, unknown> {
 	return { ...meta, object: "chat.completion.reassembled", choices: outChoices, usage, n_chunks: nChunks, n_bad_chunks: nBad };
 }
 
+/** Counting semaphore; `limit <= 0` never blocks. `acquire()` resolves to an idempotent release function. */
+export function semaphore(limit: number) {
+	let active = 0;
+	const waiters: (() => void)[] = [];
+	return {
+		active: () => active,
+		waiting: () => waiters.length,
+		async acquire(): Promise<() => void> {
+			if (limit <= 0) return () => {};
+			if (active < limit) active++;
+			else await new Promise<void>((r) => waiters.push(r)); // the releaser hands its slot over
+			let released = false;
+			return () => {
+				if (released) return;
+				released = true;
+				const next = waiters.shift();
+				if (next) next();
+				else active--;
+			};
+		},
+	};
+}
+
+/** PDH_MAX_CONCURRENT: a non-negative integer; unset or empty means 0 (unlimited). */
+export function maxConcurrentFromEnv(env = process.env): number {
+	const raw = env.PDH_MAX_CONCURRENT?.trim();
+	if (!raw) return 0;
+	const n = Number(raw);
+	if (!Number.isInteger(n) || n < 0) throw new Error(`PDH_MAX_CONCURRENT must be a non-negative integer (0 = unlimited), got ${JSON.stringify(raw)}`);
+	return n;
+}
+
 export type LoggingProxy = { url: string; port: number; close(): Promise<void>; requests(): number };
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
@@ -88,8 +121,10 @@ function readBody(req: IncomingMessage): Promise<Buffer> {
 	});
 }
 
-export async function startLoggingProxy(upstream: string, logPath: string, opts: { keepRawSse?: boolean; startSeq?: number } = {}): Promise<LoggingProxy> {
+export async function startLoggingProxy(upstream: string, logPath: string, opts: { keepRawSse?: boolean; startSeq?: number; maxConcurrent?: number } = {}): Promise<LoggingProxy> {
 	mkdirSync(dirname(logPath), { recursive: true });
+	const limit = opts.maxConcurrent ?? maxConcurrentFromEnv();
+	const slots = semaphore(limit);
 	const first = opts.startSeq ?? 0;
 	const up = new URL(upstream);
 	const upstreamOrigin = `${up.protocol}//${up.host}`;
@@ -116,6 +151,8 @@ export async function startLoggingProxy(upstream: string, logPath: string, opts:
 		} else rec.request = null;
 		const headers: Record<string, string> = {};
 		for (const [k, v] of Object.entries(req.headers)) if (!HOP_BY_HOP.has(k.toLowerCase()) && typeof v === "string") headers[k] = v;
+		const release = await slots.acquire();
+		if (limit > 0) rec.queue_wait_s = Math.round((Date.now() / 1000 - t0) * 1000) / 1000;
 		try {
 			const resp = await fetch(upstreamOrigin + req.url, {
 				method: req.method,
@@ -177,6 +214,8 @@ export async function startLoggingProxy(upstream: string, logPath: string, opts:
 			write(rec);
 			if (!res.headersSent) res.writeHead(502, { "content-type": "text/plain" });
 			res.end(`proxy error: ${String(e)}`);
+		} finally {
+			release();
 		}
 	});
 	await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));

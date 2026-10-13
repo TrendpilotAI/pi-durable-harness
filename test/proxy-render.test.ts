@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assembleSse, startLoggingProxy } from "../src/proxy.ts";
+import { assembleSse, maxConcurrentFromEnv, startLoggingProxy } from "../src/proxy.ts";
 import { groupThreads, renderEpisode } from "../src/mass/render.ts";
 import { parseTemplate, renderTemplate, DESIGN_MARKER } from "../src/mass/workflow.ts";
 import { parseJsonLoose } from "../src/mass/llm.ts";
@@ -54,6 +54,52 @@ describe("logging proxy (MASS api_proxy port)", () => {
 		expect(recs[0].response.choices[0].message.content).toBe("Hello");
 		expect(recs[1].stream).toBe(false);
 		for (const k of ["ts_start", "ts_start_iso", "method", "path", "seq", "request_bytes", "status", "response_bytes", "duration_s"]) expect(recs[0]).toHaveProperty(k);
+	});
+});
+
+/** Fake upstream that answers after `delayMs` and records the peak number of requests in flight. */
+async function slowUpstream(delayMs: number) {
+	let inFlight = 0;
+	let peak = 0;
+	const server = createServer((req, res) => {
+		inFlight++;
+		peak = Math.max(peak, inFlight);
+		req.resume();
+		setTimeout(() => {
+			inFlight--;
+			res.writeHead(200, { "content-type": "application/json" });
+			res.end(JSON.stringify({ choices: [{ message: { role: "assistant", content: "ok" } }] }));
+		}, delayMs);
+	});
+	await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+	return { url: `http://127.0.0.1:${(server.address() as any).port}/v1`, peak: () => peak, close: () => server.close() };
+}
+
+describe("logging proxy concurrency limit", () => {
+	it("bounds in-flight upstream requests to maxConcurrent", async () => {
+		for (const [limit, expectPeak] of [
+			[1, 1],
+			[2, 2],
+			[0, 4],
+		]) {
+			const up = await slowUpstream(80);
+			const dir = mkdtempSync(join(tmpdir(), "pdh-sem-"));
+			const p = await startLoggingProxy(up.url, join(dir, "api_requests.jsonl"), { maxConcurrent: limit });
+			const rs = await Promise.all([0, 1, 2, 3].map(() => fetch(`${p.url}/chat/completions`, { method: "POST", body: "{}" }).then((r) => r.json())));
+			expect(rs.every((r: any) => r.choices[0].message.content === "ok")).toBe(true);
+			expect(up.peak()).toBe(expectPeak);
+			await p.close();
+			up.close();
+			const recs = readFileSync(join(dir, "api_requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+			expect(recs.length).toBe(4);
+			expect(recs.some((r) => "queue_wait_s" in r)).toBe(limit > 0);
+		}
+	});
+	it("reads PDH_MAX_CONCURRENT (default unlimited) and rejects bad values", () => {
+		expect(maxConcurrentFromEnv({})).toBe(0);
+		expect(maxConcurrentFromEnv({ PDH_MAX_CONCURRENT: "2" })).toBe(2);
+		expect(() => maxConcurrentFromEnv({ PDH_MAX_CONCURRENT: "-1" })).toThrow(/non-negative integer/);
+		expect(() => maxConcurrentFromEnv({ PDH_MAX_CONCURRENT: "x" })).toThrow(/non-negative integer/);
 	});
 });
 
