@@ -55,6 +55,11 @@ describe("durable sessions", () => {
 		await expect(sm.run("lk")).rejects.toThrow(/owned by live pid/);
 		expect(readFileSync(lock, "utf8")).toBe(String(process.ppid));
 		expect(sm.readMeta("lk").status).toBe("created");
+		// A follow-up on a locked session is refused before it touches meta.json.
+		const metaPath = join(root, "lk", "meta.json");
+		const before = readFileSync(metaPath, "utf8");
+		await expect(sm.resume("lk", { prompt: "follow up" })).rejects.toThrow(/owned by live pid/);
+		expect(readFileSync(metaPath, "utf8")).toBe(before);
 		// Stale owner (a pid that has exited): the lock is taken over and released at the end.
 		const dead = spawnSync(process.execPath, ["-e", ""]).pid!;
 		writeFileSync(lock, String(dead));

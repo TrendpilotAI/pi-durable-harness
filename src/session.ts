@@ -42,6 +42,8 @@ export type RunOptions = {
 	sampling?: Sampling;
 	/** When a run ends `unanswered` with a model error (e.g. a server-side decode failure), queue up to this many durable "continue" inputs. Default 2. */
 	autoContinue?: number;
+	/** Follow-up prompt queued (as `follow:<id>:<index>`) after the owner lock is taken and meta re-read. */
+	followUp?: string;
 };
 
 export const CONTINUE_PROMPT =
@@ -234,6 +236,7 @@ export class SessionManager {
 		let opened: Awaited<ReturnType<SessionManager["open"]>>;
 		try {
 			meta = this.readMeta(id); // re-read under the lock
+			if (opts.followUp) meta.prompts.push({ requestId: `follow:${id}:${meta.prompts.length}`, content: opts.followUp });
 			const sampling = mergeSampling(meta.sampling, opts.sampling);
 			if (sampling) meta.sampling = sampling;
 			meta.status = "running";
@@ -308,12 +311,8 @@ export class SessionManager {
 
 	/** Resume by id; optionally queue a follow-up prompt in the same durable conversation. */
 	async resume(id: string, opts: RunOptions & { prompt?: string } = {}): Promise<SessionMeta> {
-		const meta = this.readMeta(id);
-		if (opts.prompt) {
-			meta.prompts.push({ requestId: `follow:${id}:${meta.prompts.length}`, content: opts.prompt });
-			this.writeMeta(meta);
-		}
-		return this.run(id, opts);
+		const { prompt, ...rest } = opts;
+		return this.run(id, prompt ? { ...rest, followUp: prompt } : rest);
 	}
 
 	/** Compact transcript of the root conversation (read-only; the scheduler is not started). */
