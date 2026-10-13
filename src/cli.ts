@@ -16,10 +16,16 @@ Sessions:
   pdh config
 MASS:
   pdh mass search|collect|rank|select|render|cycle --config configs/local.json [--tasks 1,2] [--retry-failed]
-  pdh mass train --config ...      (deferred: prints the LoRA plan, runs nothing)
+  pdh mass train                   (DEFERRED: prints a note, runs nothing, exits 0)
 
 Env: PDH_HOME (default ~/.pi-durable-harness), PDH_BASE_URL, PDH_MODEL, PDH_MAX_TOKENS, PDH_API_KEY, PDH_PI_MODELS_JSON,
      PDH_MAX_CONCURRENT (MASS episodes: max in-flight requests to mlx-serve; 0 = unlimited)`;
+
+const MASS_STAGES = ["search", "collect", "rank", "select", "render", "cycle"];
+
+const TRAIN_DEFERRED = `DEFERRED: LoRA post-training is not implemented in this harness; nothing was run.
+pdh mass cycle stops after render. The SFT hand-off data is runs/<run>/data/{train,val}.jsonl.
+See docs/MASS.md#post-training-deferred for the (unverified) mlx_lm.lora plan.`;
 
 const ev = (s: string) => console.error(`${new Date().toISOString()} ${s}`);
 
@@ -90,6 +96,16 @@ async function main() {
 		}
 		case "mass": {
 			const stage = positionals[0];
+			if (stage === "train") {
+				console.log(TRAIN_DEFERRED);
+				break;
+			}
+			if (!MASS_STAGES.includes(stage)) {
+				console.error(stage ? `error: unknown mass stage '${stage}'\n` : "error: mass needs a stage\n");
+				console.log(USAGE);
+				process.exitCode = 2;
+				break;
+			}
 			const x = makeCtx(values.config!, (s) => ev(s));
 			x.retryFailed = values["retry-failed"];
 			const tasks = values.tasks ? values.tasks.split(",").map(Number) : undefined;
@@ -99,8 +115,6 @@ async function main() {
 			else if (stage === "select") select(x);
 			else if (stage === "render") render(x);
 			else if (stage === "cycle") await cycle(x, tasks);
-			else if (stage === "train") console.log("Deferred: weight post-training is not run on this Mac. See docs/MASS.md#post-training-deferred for the mlx_lm.lora plan over runs/*/data/{train,val}.jsonl.");
-			else throw new Error(`unknown mass stage ${stage}`);
 			break;
 		}
 		default:

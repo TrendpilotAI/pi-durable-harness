@@ -80,8 +80,12 @@ Evidence lands in `runs/demo-logs/<id>/`.
 ./bin/pdh mass select  --config configs/local.json   # train / validation manifests
 ./bin/pdh mass render  --config configs/local.json   # chat JSONL for SFT (teacher prompt -> bare task)
 ./bin/pdh mass cycle   --config configs/local.json   # all of the above
-./bin/pdh mass train   --config configs/local.json   # deferred: prints a note, runs nothing
+./bin/pdh mass train                                 # DEFERRED: prints a note, runs nothing (exit 0)
 ```
+
+> **LoRA training is deferred.** The cycle ends at `render` with chat JSONL in `runs/<run>/data/`; no weights are
+> trained, merged or served. See [docs/MASS.md](docs/MASS.md#post-training-deferred) for why and for the
+> unverified `mlx_lm.lora` hand-off.
 
 Every stage is resumable (completed episodes and recorded judgments are skipped; an interrupted episode resumes
 its durable session). Layout under `runs/L0/` follows MASS: `reference/`, `workspaces/v{k}/`, `logs/.../api_requests.jsonl`,
