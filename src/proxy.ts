@@ -174,26 +174,34 @@ export async function startLoggingProxy(upstream: string, logPath: string, opts:
 				res.on("close", () => {
 					if (!res.writableEnded) clientGone = true;
 				});
-				for await (const chunk of resp.body as any) {
-					const b = Buffer.from(chunk);
-					chunks.push(b);
-					if (!clientGone) {
-						try {
-							res.write(b);
-						} catch (e) {
-							clientGone = true;
-							rec.client_disconnected = String(e);
+				let upstreamError: unknown;
+				try {
+					for await (const chunk of resp.body as any) {
+						const b = Buffer.from(chunk);
+						chunks.push(b);
+						if (!clientGone) {
+							try {
+								res.write(b);
+							} catch (e) {
+								clientGone = true;
+								rec.client_disconnected = String(e);
+							}
 						}
 					}
+				} catch (e) {
+					upstreamError = e;
 				}
 				const raw = Buffer.concat(chunks).toString("utf8");
 				rec.stream = true;
 				rec.response_bytes = Buffer.byteLength(raw);
-				rec.response = assembleSse(raw);
+				rec.response = assembleSse(raw); // partial if the upstream failed
+				if (upstreamError !== undefined) rec.upstream_error = String((upstreamError as any)?.cause ?? upstreamError);
 				if (opts.keepRawSse) rec.sse_raw = raw;
 				rec.duration_s = Math.round((Date.now() / 1000 - t0) * 1000) / 1000;
 				write(rec);
-				if (!clientGone) res.end();
+				// Headers are already sent: a failed upstream must look like a failure to the client, not a short success.
+				if (upstreamError !== undefined) res.destroy(upstreamError instanceof Error ? upstreamError : new Error(String(upstreamError)));
+				else if (!clientGone) res.end();
 				return;
 			}
 			const data = Buffer.from(await resp.arrayBuffer());

@@ -103,6 +103,32 @@ describe("logging proxy concurrency limit", () => {
 	});
 });
 
+describe("logging proxy upstream failure mid-stream", () => {
+	it("logs the partial response with upstream_error and fails the client connection", async () => {
+		const first = sse.split("\n\n").slice(0, 2).join("\n\n") + "\n\n"; // role/reasoning + "Hel"
+		const up = createServer((req, res) => {
+			req.resume();
+			res.writeHead(200, { "content-type": "text/event-stream" });
+			res.write(first, () => setTimeout(() => res.socket?.destroy(), 30));
+		});
+		await new Promise<void>((r) => up.listen(0, "127.0.0.1", r));
+		const dir = mkdtempSync(join(tmpdir(), "pdh-midstream-"));
+		const log = join(dir, "api_requests.jsonl");
+		const p = await startLoggingProxy(`http://127.0.0.1:${(up.address() as any).port}/v1`, log);
+		const resp = await fetch(`${p.url}/chat/completions`, { method: "POST", body: JSON.stringify({ stream: true, messages: [] }) });
+		expect(resp.status).toBe(200);
+		await expect(resp.text()).rejects.toThrow();
+		await p.close();
+		up.close();
+		const recs = readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+		expect(recs.length).toBe(1);
+		expect(recs[0].stream).toBe(true);
+		expect(recs[0].upstream_error).toBeTruthy();
+		expect(recs[0].response.choices[0].message.content).toBe("Hel");
+		expect(recs[0].response.choices[0].finish_reason).toBeNull();
+	});
+});
+
 describe("rendering (prepare_sft_data port)", () => {
 	it("groups threads by prefix and swaps the teacher prompt for the bare task", () => {
 		const dir = mkdtempSync(join(tmpdir(), "pdh-render-"));
@@ -112,7 +138,8 @@ describe("rendering (prepare_sft_data port)", () => {
 		const orch2 = [...orch1, { role: "assistant", content: "", tool_calls: [{ id: "1", type: "function", function: { name: "agent", arguments: "{}" } }] }, { role: "tool", tool_call_id: "1", content: "report" }];
 		const worker = [sys, { role: "user", content: "worker task" }];
 		const rec = (seq: number, messages: any[], content: string) => ({ seq, path: "/v1/chat/completions", status: 200, request: { messages, tools: [{ type: "function" }] }, response: { choices: [{ message: { role: "assistant", content } }] } });
-		writeFileSync(join(dir, "api_requests.jsonl"), [rec(0, orch1, "delegating"), rec(1, worker, "worker done"), rec(2, orch2, "final")].map((r) => JSON.stringify(r)).join("\n") + "\n");
+		const truncated = { ...rec(3, [...orch2, { role: "assistant", content: "final" }, { role: "user", content: "x" }], "trunc"), upstream_error: "terminated" };
+		writeFileSync(join(dir, "api_requests.jsonl"), [rec(0, orch1, "delegating"), rec(1, worker, "worker done"), rec(2, orch2, "final"), truncated].map((r) => JSON.stringify(r)).join("\n") + "\n");
 		const chats = [rec(0, orch1, ""), rec(2, orch2, "")];
 		expect(groupThreads(chats).length).toBe(1);
 		const rows = renderEpisode(dir, teacher, "BARE TASK", { episode: "e" });

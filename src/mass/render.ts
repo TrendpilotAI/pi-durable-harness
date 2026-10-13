@@ -73,7 +73,8 @@ const userText = (c: any): string => (typeof c === "string" ? c : Array.isArray(
 
 /** Render one episode's logs into conversations. Orchestrator = the thread whose first user message is the teacher prompt. */
 export function renderEpisode(logsDir: string, teacherPrompt: string, barePrompt: string, meta: Record<string, unknown> = {}) {
-	const chats = loadRequests(logsDir).filter((r) => r.status === 200 && r.request?.messages && r.response?.choices?.[0]?.message && String(r.path).includes("chat/completions"));
+	// Records with upstream_error hold a partial (truncated) response and are never training targets.
+	const chats = loadRequests(logsDir).filter((r) => r.status === 200 && !r.upstream_error && r.request?.messages && r.response?.choices?.[0]?.message && String(r.path).includes("chat/completions"));
 	const rows: any[] = [];
 	for (const { key, segment } of groupThreads(chats)) {
 		const last = segment[segment.length - 1];
