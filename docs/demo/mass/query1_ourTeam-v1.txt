@@ -1,0 +1,32 @@
+In the current working directory, build a tiny Python package for interval arithmetic.
+
+Deliverables:
+1) intervals.py with a function merge_intervals(intervals) that takes a list of [start, end] pairs (ints, start <= end, any order, possibly empty) and returns a new sorted list of merged, non-overlapping [start, end] pairs. Touching intervals such as [1, 2] and [2, 3] merge into [1, 3]. Raise ValueError for a pair whose start > end.
+2) test_intervals.py using only the standard-library unittest module, with at least 6 test cases covering empty input, unsorted input, nested intervals, touching intervals, a single interval, and the ValueError case.
+3) NOTES.md with three short lines: the algorithm, its time complexity, and the command that runs the tests.
+
+Run `python3 -m unittest -q` and make sure it passes before you finish. Do not use network access or third-party packages.
+
+Create an agent team with following agent candidates to solve this problem:
+[
+  {
+    "agent_id": "agent_orchestrator",
+    "role": "Lead Engineer & Workflow Coordinator",
+    "instruction": "Decompose the task, delegate implementation and testing to the team through the agent tool, verify every report yourself by running the tests, and integrate. Finish when all deliverables exist and the tests pass."
+  },
+  {
+    "agent_id": "agent_implementer",
+    "role": "Implementer",
+    "instruction": "Write the production module exactly to the specified interface. Keep it small, documented, and dependency-free. Report the files written."
+  },
+  {
+    "agent_id": "agent_tester",
+    "role": "Test Engineer",
+    "instruction": "Write unittest tests that cover the specified edge cases, run them, and report failures with the exact failing output."
+  },
+  {
+    "agent_id": "agent_reviewer",
+    "role": "Code Reviewer",
+    "instruction": "Review the generated code for edge cases (empty, single, nested, touching) and ensure no side effects on input lists. Report any issues."
+  }
+]

@@ -1,0 +1,63 @@
+{
+  "id": "kill-demo",
+  "createdAt": "2026-10-13T10:22:47.721Z",
+  "updatedAt": "2026-10-13T10:23:34.000Z",
+  "cwd": "/Users/winner/code/pi-durable-harness/runs/demo-ws/kill-demo",
+  "model": "ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit",
+  "thinkingLevel": "off",
+  "team": true,
+  "prompts": [
+    {
+      "requestId": "start:kill-demo",
+      "content": "Use the agent tool for each step, one at a time: (1) agent_a writes fib.py with fib(n) iteratively; (2) agent_b writes test_fib.py with unittest covering n=0,1,2,10,30 and runs python3 -m unittest -q; (3) agent_c writes README.md describing both files. After each step, verify with bash (ls, run tests). Finish with a summary of every step.",
+      "submissionId": 8,
+      "status": "done",
+      "answerText": "✅ **Step 3 complete** — `README.md` exists with clear documentation of both files.\n\n---\n\n## Final Summary — All 3 Steps\n\n| Step | Agent | Task | Result | Verification |\n|------|-------|------|--------|-------------|\n| **1** | `agent_a` | Write `fib.py` with iterative `fib(n)` | ✅ File created (664 bytes), function handles n=0, n=1, and n<0 correctly | `ls fib.py` confirmed existence |\n| **2** | `agent_b` | Write `test_fib.py` with unittest for n=0,1,2,10,30 | ✅ File created (446 bytes), all 5 tests pass (OK) | `python3 -m unittest -q` → OK |\n| **3** | `agent_c` | Write `README.md` describing both files | ✅ File created (1,739 bytes), includes overview, code examples, test table, run command | `ls` confirmed all 3 files present |\n\n**Final file listing:**\n```\nfib.py      (664 B)  – iterative Fibonacci function\ntest_fib.py (446 B)  – unittest suite covering n=0,1,2,10,30 (all 5 pass)\nREADME.md   (1739 B) – documentation describing both files\n```\n\nAll three agents completed their tasks successfully, and every step was verified with bash commands."
+    }
+  ],
+  "status": "done",
+  "runs": [
+    {
+      "pid": 84912,
+      "startedAt": "2026-10-13T10:22:47.723Z"
+    },
+    {
+      "pid": 85116,
+      "startedAt": "2026-10-13T10:22:58.140Z",
+      "endedAt": "2026-10-13T10:23:34.000Z",
+      "outcome": "done"
+    }
+  ],
+  "store": {
+    "scheduling": "paused",
+    "liveTasks": [],
+    "unsettledSubmissions": [],
+    "entries": 19,
+    "entryKinds": {
+      "pi.assistant": 9,
+      "pi.tool-result": 8,
+      "pi.system": 1,
+      "pi.user": 1
+    },
+    "usage": {
+      "models": {
+        "mlx/ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit": {
+          "input": 8089,
+          "output": 2974,
+          "cacheRead": 30199,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 41262,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      },
+      "tools": {}
+    }
+  }
+}

@@ -1,0 +1,20 @@
+In the current working directory, write roman.py with to_roman(n) for 1 <= n <= 3999 (raise ValueError otherwise) and from_roman(s) that rejects invalid numerals with ValueError, plus test_roman.py using unittest with a round-trip test over 1..3999. Run `python3 -m unittest -q` and make sure it passes. No network access or third-party packages.
+
+Create an agent team with following agent candidates to solve this problem:
+[
+  {
+    "agent_id": "agent_orchestrator",
+    "role": "Lead Engineer & Workflow Coordinator",
+    "instruction": "Decompose the task, delegate implementation and testing to the team through the agent tool, verify every report yourself by running the tests, and integrate. Finish when all deliverables exist and the tests pass."
+  },
+  {
+    "agent_id": "agent_implementer",
+    "role": "Implementer",
+    "instruction": "Write the production module exactly to the specified interface. Keep it small, documented, and dependency-free. Report the files written."
+  },
+  {
+    "agent_id": "agent_tester",
+    "role": "Test Engineer",
+    "instruction": "Write unittest tests that cover the specified edge cases, run them, and report failures with the exact failing output."
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "started_at": "2026-10-13T10:23:42.634Z",
+  "finished_at": "2026-10-13T10:23:59.249Z",
+  "model": "ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit",
+  "endpoint": "http://127.0.0.1:11234/v1",
+  "seed": 450001,
+  "qwen_code_version": null,
+  "runtime": "pi-durable-harness/0.1.0 (@earendil-works/pi-durable 1.2.0)",
+  "exit_code": 0,
+  "trace_has_success_result": true,
+  "failure": null,
+  "execution_mode": "headless_host_visible_yolo",
+  "operational_limits": {
+    "episode_timeout_ms": 600000,
+    "context_window_tokens": 262144,
+    "max_tokens_per_model_response": 16384
+  },
+  "hiw": {
+    "condition": "t1_bare",
+    "prompt_source": "/Users/winner/code/pi-durable-harness/tasks/bare/query1.txt",
+    "client_endpoint": "http://127.0.0.1:53554/v1",
+    "api_log": "/Users/winner/code/pi-durable-harness/runs/L0/logs/reference/query1/api_requests.jsonl",
+    "api_requests": 7,
+    "mass": true
+  },
+  "check": {
+    "ran": true,
+    "exit_code": 0
+  },
+  "session": {
+    "id": "episode",
+    "store": "/Users/winner/code/pi-durable-harness/runs/L0/logs/reference/query1/session/episode/session.sqlite",
+    "runs": [
+      {
+        "pid": 86003,
+        "startedAt": "2026-10-13T10:23:42.635Z",
+        "endedAt": "2026-10-13T10:23:59.184Z",
+        "outcome": "done"
+      }
+    ]
+  }
+}
