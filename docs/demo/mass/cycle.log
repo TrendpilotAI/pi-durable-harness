@@ -1,0 +1,50 @@
+2026-10-13T10:23:42.644Z [t1_bare] [submit] start:episode -> submission 8
+2026-10-13T10:23:59.182Z [t1_bare] [settled] start:episode done 
+2026-10-13T10:23:59.249Z [episode] t1_bare finished success=true api_requests=7 check=0
+2026-10-13T10:23:59.256Z [t1_v0] [submit] start:episode -> submission 8
+2026-10-13T10:26:43.078Z [episode] t1_bare already complete
+2026-10-13T10:26:43.082Z [episode] t1_v0: resuming durable session after interruption
+2026-10-13T10:26:43.088Z [t1_v0] [submit] start:episode -> submission 8
+2026-10-13T10:27:20.105Z [t1_v0] [settled] start:episode unanswered unanswered: model_error generation failed
+2026-10-13T10:27:20.105Z [t1_v0] [auto-continue] queued continue1 after model_error
+2026-10-13T10:27:20.106Z [t1_v0] [submit] start:episode:continue1 -> submission 49
+2026-10-13T10:27:30.286Z [t1_v0] [settled] start:episode:continue1 done 
+2026-10-13T10:27:30.350Z [episode] t1_v0 finished success=true api_requests=12 check=0
+2026-10-13T10:27:36.245Z [rhi] task 1 v0_vs_no_harness: winner=B
+2026-10-13T10:27:55.722Z [rhi] task 1 proposed v1: Added 'agent_reviewer' to the team. | Kept existing orchestrator, implementer, and tester roles.
+2026-10-13T10:27:55.727Z [t1_v1] [submit] start:episode -> submission 8
+2026-10-13T10:28:43.129Z [t1_v1] [settled] start:episode done 
+2026-10-13T10:28:43.191Z [episode] t1_v1 finished success=true api_requests=13 check=0
+2026-10-13T10:28:49.625Z [rhi] task 1 v1_vs_no_harness: winner=B
+2026-10-13T10:28:56.045Z [rhi] task 1 retained {"version":0,"beats_reference":true,"model":"ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit","last_evaluated_version":1}
+2026-10-13T10:28:56.053Z [t1_L0] [submit] start:episode -> submission 8
+2026-10-13T10:29:51.906Z [t1_L0] [settled] start:episode done 
+2026-10-13T10:29:51.914Z [episode] t1_L0 finished success=true api_requests=21 check=2
+2026-10-13T10:29:51.919Z [t1_L0] [submit] start:episode -> submission 8
+2026-10-13T10:30:58.987Z [t1_L0] [settled] start:episode unanswered unanswered: model_error generation failed
+2026-10-13T10:30:58.987Z [t1_L0] [auto-continue] queued continue1 after model_error
+2026-10-13T10:30:58.989Z [t1_L0] [submit] start:episode:continue1 -> submission 118
+2026-10-13T10:31:04.138Z [t1_L0] [settled] start:episode:continue1 unanswered unanswered: model_error generation failed
+2026-10-13T10:31:04.138Z [t1_L0] [auto-continue] queued continue2 after model_error
+2026-10-13T10:31:04.140Z [t1_L0] [submit] start:episode:continue2 -> submission 126
+2026-10-13T10:32:04.004Z [t1_L0] [settled] start:episode:continue2 unanswered unanswered: model_error generation failed
+2026-10-13T10:32:04.077Z [episode] t1_L0 finished success=false api_requests=39 check=0
+2026-10-13T10:32:04.084Z [t1_L0] [submit] start:episode -> submission 8
+2026-10-13T10:32:53.097Z [t1_L0] [settled] start:episode done 
+2026-10-13T10:32:53.168Z [episode] t1_L0 finished success=true api_requests=17 check=0
+error: Task 1: need at least 3 successful candidates, found 2
+=== rerun Tue Oct 13 06:36:52 EDT 2026
+2026-10-13T10:36:53.054Z [episode] t1_bare already complete
+2026-10-13T10:36:53.055Z [episode] t1_v0 already complete
+2026-10-13T10:36:53.056Z [episode] t1_v1 already complete
+2026-10-13T10:36:53.056Z [rhi] task 1 retained {"version":0,"beats_reference":true,"model":"ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit","last_evaluated_version":1}
+2026-10-13T10:36:53.057Z [episode] t1_L0 already complete
+2026-10-13T10:36:53.061Z [episode] t1_L0: retrying failed episode (attempt 2) in the same durable session
+2026-10-13T10:36:53.065Z [episode] t1_L0: resuming durable session after interruption
+2026-10-13T10:36:53.074Z [t1_L0] [submit] follow:episode:3 -> submission 204
+2026-10-13T10:37:38.691Z [t1_L0] [settled] follow:episode:3 done 
+2026-10-13T10:37:38.759Z [episode] t1_L0 finished success=true api_requests=43 check=0
+2026-10-13T10:37:38.760Z [episode] t1_L0 already complete
+2026-10-13T10:42:14.618Z Selected 2 training and 1 validation trajectories.
+2026-10-13T10:42:14.634Z [render] train: {"episodes":2,"conversations":9,"orchestrator":2,"worker":7}
+2026-10-13T10:42:14.637Z [render] val: {"episodes":1,"conversations":3,"orchestrator":1,"worker":2}

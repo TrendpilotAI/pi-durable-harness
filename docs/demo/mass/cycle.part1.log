@@ -1,0 +1,4 @@
+2026-10-13T10:23:42.644Z [t1_bare] [submit] start:episode -> submission 8
+2026-10-13T10:23:59.182Z [t1_bare] [settled] start:episode done 
+2026-10-13T10:23:59.249Z [episode] t1_bare finished success=true api_requests=7 check=0
+2026-10-13T10:23:59.256Z [t1_v0] [submit] start:episode -> submission 8

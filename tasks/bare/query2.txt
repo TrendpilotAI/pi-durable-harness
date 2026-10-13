@@ -1,0 +1,1 @@
+In the current working directory, write roman.py with to_roman(n) for 1 <= n <= 3999 (raise ValueError otherwise) and from_roman(s) that rejects invalid numerals with ValueError, plus test_roman.py using unittest with a round-trip test over 1..3999. Run `python3 -m unittest -q` and make sure it passes. No network access or third-party packages.

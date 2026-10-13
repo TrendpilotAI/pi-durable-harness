@@ -1,0 +1,10 @@
+{
+  "generation": 0,
+  "run_dir": "runs/L0",
+  "tasks_dir": "tasks",
+  "tasks": { "train": [1], "test": [2] },
+  "search": { "iterations": 1, "seed_base": 450000 },
+  "collection": { "candidates": 3, "train_ranks": 2, "validation_rank": 3, "seed_base": 710000 },
+  "ranking": { "opponents_per_episode": 2, "seed": 1234 },
+  "episode": { "timeout_ms": 600000, "thinking_level": "off" }
+}

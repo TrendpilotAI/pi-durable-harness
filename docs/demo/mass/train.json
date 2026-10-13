@@ -1,0 +1,24 @@
+[
+  {
+    "episode": "t1_L0_s710102",
+    "task": 1,
+    "condition": "t1_L0",
+    "seed": 710102,
+    "workspace": "/Users/winner/code/pi-durable-harness/runs/L0/pool/workspaces/t1_L0_s710102",
+    "logs_dir": "/Users/winner/code/pi-durable-harness/runs/L0/pool/runlogs/t1_L0_s710102",
+    "teacher_prompt": "/Users/winner/code/pi-durable-harness/runs/L0/teacher_prompts/query1.txt",
+    "score": 0.7550168473659357,
+    "rank": 1
+  },
+  {
+    "episode": "t1_L0_s710101",
+    "task": 1,
+    "condition": "t1_L0",
+    "seed": 710101,
+    "workspace": "/Users/winner/code/pi-durable-harness/runs/L0/pool/workspaces/t1_L0_s710101",
+    "logs_dir": "/Users/winner/code/pi-durable-harness/runs/L0/pool/runlogs/t1_L0_s710101",
+    "teacher_prompt": "/Users/winner/code/pi-durable-harness/runs/L0/teacher_prompts/query1.txt",
+    "score": -0.40032361646609976,
+    "rank": 2
+  }
+]

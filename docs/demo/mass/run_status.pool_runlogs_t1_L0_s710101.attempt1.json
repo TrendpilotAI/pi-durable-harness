@@ -1,0 +1,45 @@
+{
+  "started_at": "2026-10-13T10:29:51.915Z",
+  "finished_at": "2026-10-13T10:32:04.076Z",
+  "model": "ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit",
+  "endpoint": "http://127.0.0.1:11234/v1",
+  "seed": 710101,
+  "qwen_code_version": null,
+  "runtime": "pi-durable-harness/0.1.0 (@earendil-works/pi-durable 1.2.0)",
+  "exit_code": 1,
+  "trace_has_success_result": false,
+  "failure": {
+    "session_status": "unanswered",
+    "answer": "unanswered: model_error generation failed"
+  },
+  "execution_mode": "headless_host_visible_yolo",
+  "operational_limits": {
+    "episode_timeout_ms": 600000,
+    "context_window_tokens": 262144,
+    "max_tokens_per_model_response": 16384
+  },
+  "hiw": {
+    "condition": "t1_L0",
+    "prompt_source": "/Users/winner/code/pi-durable-harness/runs/L0/teacher_prompts/query1.txt",
+    "client_endpoint": "http://127.0.0.1:54397/v1",
+    "api_log": "/Users/winner/code/pi-durable-harness/runs/L0/pool/runlogs/t1_L0_s710101/api_requests.jsonl",
+    "api_requests": 39,
+    "mass": true
+  },
+  "check": {
+    "ran": true,
+    "exit_code": 0
+  },
+  "session": {
+    "id": "episode",
+    "store": "/Users/winner/code/pi-durable-harness/runs/L0/pool/runlogs/t1_L0_s710101/session/episode/session.sqlite",
+    "runs": [
+      {
+        "pid": 89949,
+        "startedAt": "2026-10-13T10:29:51.915Z",
+        "endedAt": "2026-10-13T10:32:04.006Z",
+        "outcome": "unanswered"
+      }
+    ]
+  }
+}

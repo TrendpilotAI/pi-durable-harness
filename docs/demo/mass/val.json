@@ -1,0 +1,13 @@
+[
+  {
+    "episode": "t1_L0_s710100",
+    "task": 1,
+    "condition": "t1_L0",
+    "seed": 710100,
+    "workspace": "/Users/winner/code/pi-durable-harness/runs/L0/pool/workspaces/t1_L0_s710100",
+    "logs_dir": "/Users/winner/code/pi-durable-harness/runs/L0/pool/runlogs/t1_L0_s710100",
+    "teacher_prompt": "/Users/winner/code/pi-durable-harness/runs/L0/teacher_prompts/query1.txt",
+    "score": -1.5982533081398627,
+    "rank": 3
+  }
+]

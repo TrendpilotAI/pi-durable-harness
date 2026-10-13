@@ -1,0 +1,6 @@
+{
+  "id": "kill-demo",
+  "status": "done",
+  "runs": 2,
+  "answer": "✅ **Step 3 complete** — `README.md` exists with clear documentation of both files.\n\n---\n\n## Final Summary — All 3 Steps\n\n| Step | Agent | Task | Result | Verification |\n|------|-------|------|--------|-------------|\n| **1** | `agent_a` | Write `fib.py` with iterative `fib(n)` | ✅ File created (664 bytes), function handles n=0, n=1, and n<0 correctly | `ls fib.py` confirmed existence |\n| **2** | `agent_b` | Write `test_fib.py` with unittest for n=0,1,2,10,30 | ✅ File created (446 bytes), all 5 tests pass (OK) | `python3 -m unittest -q` → OK |\n| **3** | `agent_c` | Write `README.md` describing both files | ✅ File created (1,739 bytes), includes overview, code examples, test table, run command | `ls` confirmed all 3 files present |\n\n**Final file listing:**\n```\nfib.py      (664 B)  – iterative Fibonacci function\ntest_fib.py (446 B)  – unittest suite covering n=0,1,2,10,30 (all 5 pass)\nREADME.md   (1739 B) – documentation describing both files\n```\n\nAll three agents completed their tasks successfully, and every step was verified with bash commands."
+}

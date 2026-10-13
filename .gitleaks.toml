@@ -1,0 +1,9 @@
+# Extend the default rules; allowlist only the MASS judge-history keys (e.g. "key": "champion_v0_vs_v1"),
+# which the generic-api-key rule mistakes for credentials.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "MASS history/champion record keys are identifiers, not secrets"
+regexTarget = "match"
+regexes = ['''key["']?\s*[:=]\s*[`"']?(champion_)?v\d+_vs_(v\d+|no_harness)''']

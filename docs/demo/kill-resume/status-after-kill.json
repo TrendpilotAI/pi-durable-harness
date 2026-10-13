@@ -1,0 +1,86 @@
+{
+  "id": "kill-demo",
+  "createdAt": "2026-10-13T10:22:47.721Z",
+  "updatedAt": "2026-10-13T10:22:47.731Z",
+  "cwd": "/Users/winner/code/pi-durable-harness/runs/demo-ws/kill-demo",
+  "model": "ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit",
+  "thinkingLevel": "off",
+  "team": true,
+  "prompts": [
+    {
+      "requestId": "start:kill-demo",
+      "content": "Use the agent tool for each step, one at a time: (1) agent_a writes fib.py with fib(n) iteratively; (2) agent_b writes test_fib.py with unittest covering n=0,1,2,10,30 and runs python3 -m unittest -q; (3) agent_c writes README.md describing both files. After each step, verify with bash (ls, run tests). Finish with a summary of every step.",
+      "submissionId": 8,
+      "status": "submitted"
+    }
+  ],
+  "status": "interrupted",
+  "runs": [
+    {
+      "pid": 84912,
+      "startedAt": "2026-10-13T10:22:47.723Z"
+    }
+  ],
+  "pid": 84912,
+  "store": {
+    "scheduling": "paused",
+    "liveTasks": [
+      {
+        "id": 12,
+        "task": "pi.tool",
+        "committed": "pending",
+        "scheduler": "ready"
+      },
+      {
+        "id": 30,
+        "task": "pi.generation",
+        "committed": "pending",
+        "scheduler": "ready"
+      },
+      {
+        "id": 9,
+        "task": "pi.generation",
+        "committed": "waiting",
+        "scheduler": "waiting"
+      }
+    ],
+    "unsettledSubmissions": [
+      {
+        "id": 8,
+        "status": "placed",
+        "requestId": "start:kill-demo"
+      },
+      {
+        "id": 20,
+        "status": "placed",
+        "requestId": "agent:12"
+      }
+    ],
+    "entries": 3,
+    "entryKinds": {
+      "pi.assistant": 1,
+      "pi.system": 1,
+      "pi.user": 1
+    },
+    "usage": {
+      "models": {
+        "mlx/ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit": {
+          "input": 1407,
+          "output": 466,
+          "cacheRead": 2217,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 4090,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      },
+      "tools": {}
+    }
+  }
+}
