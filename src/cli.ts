@@ -18,7 +18,8 @@ MASS:
   pdh mass search|collect|rank|select|render|cycle --config configs/local.json [--tasks 1,2] [--retry-failed]
   pdh mass train --config ...      (deferred: prints the LoRA plan, runs nothing)
 
-Env: PDH_HOME (default ~/.pi-durable-harness), PDH_BASE_URL, PDH_MODEL, PDH_MAX_TOKENS, PDH_PI_MODELS_JSON`;
+Env: PDH_HOME (default ~/.pi-durable-harness), PDH_BASE_URL, PDH_MODEL, PDH_MAX_TOKENS, PDH_API_KEY, PDH_PI_MODELS_JSON,
+     PDH_MAX_CONCURRENT (MASS episodes: max in-flight requests to mlx-serve; 0 = unlimited)`;
 
 const ev = (s: string) => console.error(`${new Date().toISOString()} ${s}`);
 

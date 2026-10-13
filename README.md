@@ -42,15 +42,26 @@ its child conversation is found again after a restart.
 ```
 
 Options: `--thinking off|low|medium|high` (default `off`), `--timeout-ms N` (aborts the conversation durably),
-`--prompt-file F`. `start` prints `session <id>` before running, so a killed run can be resumed by id.
-Environment: `PDH_HOME`, `PDH_BASE_URL`, `PDH_MODEL`, `PDH_MAX_TOKENS`, `PDH_PI_MODELS_JSON`.
+`--prompt-file F`, `--temperature T` and `--seed N` (on `start` and `resume`). `start` prints `session <id>` before
+running, so a killed run can be resumed by id.
+
+Sampling: `--temperature` / `--seed` are stored in the session's `meta.json` (`sampling`) and sent with every model
+request of the session, sub-agent requests included; a later `resume` reuses them, and a flag given to `resume`
+replaces just that field. Without them nothing is sent and mlx-serve's defaults apply. In MASS episodes the
+per-episode seed is always sent, and `episode.temperature` in the config is sent when set (see
+[docs/MASS.md](docs/MASS.md)).
+
+Environment: `PDH_HOME`, `PDH_BASE_URL`, `PDH_MODEL`, `PDH_MAX_TOKENS`, `PDH_API_KEY`, `PDH_PI_MODELS_JSON`,
+`PDH_MAX_CONCURRENT` (MASS episodes: max requests in flight from the logging proxy to mlx-serve; default `0` =
+unlimited; set `1` if mlx-serve fails decodes when team workers overlap).
 Scripted calls should pass `</dev/null`.
 
 If a run ends `unanswered` with a model error (mlx-serve can fail a decode under concurrent load), the session
 queues up to two durable "continue" inputs (`<requestId>:continueN`) before giving up.
 
-One process owns a store at a time (pi-durable has no cross-process locking); `run`/`resume` refuse a store whose
-recorded owner pid is alive, and `status` does not open such a store.
+One process owns a store at a time (pi-durable has no cross-process locking): `run`/`resume` create
+`<session>/owner.pid` exclusively and refuse while it names a live process; a lock left by a dead process is
+taken over. `status` and `transcript` do not open a store whose recorded owner is alive.
 
 ### Kill-and-resume demo
 
