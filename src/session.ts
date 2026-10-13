@@ -5,7 +5,7 @@ import { NodeExecutionEnv } from "@earendil-works/pi-durable/env/node";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { CodingTools } from "@earendil-works/pi-durable/tools";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, linkSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { harnessHome, loadMlxConfig, type MlxConfig } from "./config.ts";
 import { mlxModels } from "./provider.ts";
@@ -55,6 +55,70 @@ function isAlive(pid: number | undefined): boolean {
 	} catch {
 		return false;
 	}
+}
+
+/** Lock files held by this process; a lock naming our pid that is not in here is stale (pid reuse). */
+const heldLocks = new Set<string>();
+
+/**
+ * Take `owner.pid` atomically (O_EXCL). A lock whose pid is alive (or held by this process) refuses; a stale one is
+ * moved aside and the acquisition retried once. Throws when the lock is not taken.
+ */
+export function acquireOwnerLock(lock: string, id: string): void {
+	for (let attempt = 0; attempt < 2; attempt++) {
+		try {
+			const fd = openSync(lock, "wx");
+			try {
+				writeSync(fd, String(process.pid));
+			} finally {
+				closeSync(fd);
+			}
+			heldLocks.add(lock);
+			return;
+		} catch (e: any) {
+			if (e?.code !== "EEXIST") throw e;
+		}
+		let text: string;
+		try {
+			text = readFileSync(lock, "utf8").trim();
+		} catch (e: any) {
+			if (e?.code === "ENOENT") continue; // released between our open and read
+			throw e;
+		}
+		const pid = Number(text);
+		if (!text) {
+			// Another process created the lock and has not written its pid yet.
+			if (Date.now() - statSync(lock).mtimeMs < 5000) throw new Error(`session ${id} is owned by another process (lock being acquired); one process per store`);
+		} else if (heldLocks.has(lock) || (pid !== process.pid && isAlive(pid))) {
+			throw new Error(`session ${id} is owned by live pid ${pid}; one process per store`);
+		}
+		if (attempt > 0) break;
+		// Stale: move it aside, and put it back if a live owner replaced it in the meantime.
+		const aside = `${lock}.stale.${process.pid}.${randomUUID().slice(0, 8)}`;
+		try {
+			renameSync(lock, aside);
+		} catch (e: any) {
+			if (e?.code === "ENOENT") continue;
+			throw e;
+		}
+		if (readFileSync(aside, "utf8").trim() !== text) {
+			try {
+				linkSync(aside, lock);
+			} catch {}
+			rmSync(aside, { force: true });
+			throw new Error(`session ${id} is owned by another process (lock replaced during recovery); one process per store`);
+		}
+		rmSync(aside, { force: true });
+	}
+	throw new Error(`session ${id}: could not acquire ${lock}`);
+}
+
+/** Remove `owner.pid` only if this process holds it and it still names us. */
+export function releaseOwnerLock(lock: string): void {
+	if (!heldLocks.delete(lock)) return;
+	try {
+		if (readFileSync(lock, "utf8").trim() === String(process.pid)) rmSync(lock, { force: true });
+	} catch {}
 }
 
 /** Durable coding-agent sessions: one pi-durable SQLite store per session id. */
@@ -150,17 +214,23 @@ export class SessionManager {
 
 	/** Run (or continue) every prompt of the session to settlement. Safe to call again after a crash. */
 	async run(id: string, opts: RunOptions = {}): Promise<SessionMeta> {
-		let meta = this.readMeta(id);
-		if (meta.status === "running" && isAlive(meta.pid) && meta.pid !== process.pid) {
-			throw new Error(`session ${id} is owned by live pid ${meta.pid}; one process per store`);
-		}
+		this.readMeta(id); // unknown ids fail before a lock is taken
 		const lock = join(this.dir(id), "owner.pid");
-		writeFileSync(lock, String(process.pid));
-		meta.status = "running";
-		meta.pid = process.pid;
-		meta.runs.push({ pid: process.pid, startedAt: new Date().toISOString() });
-		this.writeMeta(meta);
-		const { harness, root } = await this.open(meta, opts);
+		acquireOwnerLock(lock, id);
+		let meta: SessionMeta;
+		let opened: Awaited<ReturnType<SessionManager["open"]>>;
+		try {
+			meta = this.readMeta(id); // re-read under the lock
+			meta.status = "running";
+			meta.pid = process.pid;
+			meta.runs.push({ pid: process.pid, startedAt: new Date().toISOString() });
+			this.writeMeta(meta);
+			opened = await this.open(meta, opts);
+		} catch (e) {
+			releaseOwnerLock(lock);
+			throw e;
+		}
+		const { harness, root } = opened;
 		let timer: NodeJS.Timeout | undefined;
 		let timedOut = false;
 		if (opts.timeoutMs) {
@@ -211,7 +281,7 @@ export class SessionManager {
 			run.endedAt = new Date().toISOString();
 			run.outcome = meta.status;
 			this.writeMeta(meta);
-			rmSync(lock, { force: true });
+			releaseOwnerLock(lock);
 		}
 		return meta;
 	}
