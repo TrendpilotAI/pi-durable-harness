@@ -1,0 +1,41 @@
+{
+  "name": "pi-durable-harness",
+  "version": "0.1.0",
+  "description": "Durable pi-durable coding-agent sessions on local mlx-serve, with a local port of MASS (Multi-Agent Self-Supervision)",
+  "scripts": {
+    "pdh": "node src/cli.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest --run",
+    "demo:kill-resume": "bash scripts/demo-kill-resume.sh",
+    "demo:mass": "node src/cli.ts mass cycle --config configs/local.json",
+    "gitleaks": "gitleaks detect --source . --redact -v"
+  },
+  "keywords": [
+    "pi",
+    "pi-durable",
+    "mlx",
+    "mass",
+    "agents"
+  ],
+  "author": "TrendpilotAI",
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "@earendil-works/chord": "1.2.0",
+    "@earendil-works/pi-ai": "1.2.0",
+    "@earendil-works/pi-durable": "1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.4"
+  },
+  "private": true,
+  "bin": {
+    "pdh": "bin/pdh"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
