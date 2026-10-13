@@ -11,12 +11,15 @@ function pdh(...args: string[]) {
 	return { code: r.status, out: r.stdout, err: r.stderr };
 }
 
+// Each case spawns `pdh` (which loads pi-durable), so allow far more than vitest's 5 s default.
+const SPAWN_TIMEOUT = 60_000;
+
 describe("cli: mass", () => {
 	it("train is deferred: prints DEFERRED, runs nothing, exits 0", () => {
 		const r = pdh("mass", "train", "--config", "/nonexistent.json");
 		expect(r.code).toBe(0);
 		expect(r.out).toMatch(/^DEFERRED: LoRA post-training is not implemented/);
-	});
+	}, SPAWN_TIMEOUT);
 	it("unknown or missing stage prints usage and exits 2", () => {
 		for (const args of [["mass", "bogus"], ["mass"]]) {
 			const r = pdh(...args);
@@ -24,7 +27,7 @@ describe("cli: mass", () => {
 			expect(r.err).toMatch(/unknown mass stage 'bogus'|mass needs a stage/);
 			expect(r.out).toContain("pdh mass search|collect|rank|select|render|cycle");
 		}
-	});
+	}, SPAWN_TIMEOUT);
 	it("cycle never runs train", () => {
 		const src = readFileSync(join(__dirname, "../src/mass/pipeline.ts"), "utf8");
 		const body = src.slice(src.indexOf("export async function cycle"));
@@ -47,6 +50,6 @@ describe("cli: option validation", () => {
 		expect(r.code).toBe(2);
 		expect(r.err).toMatch(msg);
 		expect(r.err).not.toMatch(/\n\s+at /); // no stack trace
-	});
+	}, SPAWN_TIMEOUT);
 });
 

@@ -57,19 +57,25 @@ describe("logging proxy (MASS api_proxy port)", () => {
 	});
 });
 
-/** Fake upstream that answers after `delayMs` and records the peak number of requests in flight. */
-async function slowUpstream(delayMs: number) {
-	let inFlight = 0;
+/**
+ * Fake upstream that holds requests until `target` are in flight (then answers them all) and records the peak.
+ * Waiting for the target instead of a fixed delay keeps the peak deterministic under load.
+ */
+async function gatedUpstream(target: number) {
 	let peak = 0;
+	let held: (() => void)[] = [];
 	const server = createServer((req, res) => {
-		inFlight++;
-		peak = Math.max(peak, inFlight);
 		req.resume();
-		setTimeout(() => {
-			inFlight--;
+		held.push(() => {
 			res.writeHead(200, { "content-type": "application/json" });
 			res.end(JSON.stringify({ choices: [{ message: { role: "assistant", content: "ok" } }] }));
-		}, delayMs);
+		});
+		peak = Math.max(peak, held.length);
+		if (held.length >= target) {
+			const batch = held;
+			held = [];
+			setTimeout(() => batch.forEach((f) => f()), 20); // a later arrival would raise the peak above target
+		}
 	});
 	await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
 	return { url: `http://127.0.0.1:${(server.address() as any).port}/v1`, peak: () => peak, close: () => server.close() };
@@ -82,7 +88,7 @@ describe("logging proxy concurrency limit", () => {
 			[2, 2],
 			[0, 4],
 		]) {
-			const up = await slowUpstream(80);
+			const up = await gatedUpstream(expectPeak);
 			const dir = mkdtempSync(join(tmpdir(), "pdh-sem-"));
 			const p = await startLoggingProxy(up.url, join(dir, "api_requests.jsonl"), { maxConcurrent: limit });
 			const rs = await Promise.all([0, 1, 2, 3].map(() => fetch(`${p.url}/chat/completions`, { method: "POST", body: "{}" }).then((r) => r.json())));
@@ -106,17 +112,20 @@ describe("logging proxy concurrency limit", () => {
 describe("logging proxy upstream failure mid-stream", () => {
 	it("logs the partial response with upstream_error and fails the client connection", async () => {
 		const first = sse.split("\n\n").slice(0, 2).join("\n\n") + "\n\n"; // role/reasoning + "Hel"
+		let upRes: any;
 		const up = createServer((req, res) => {
 			req.resume();
 			res.writeHead(200, { "content-type": "text/event-stream" });
-			res.write(first, () => setTimeout(() => res.socket?.destroy(), 30));
+			res.write(first);
+			upRes = res;
 		});
 		await new Promise<void>((r) => up.listen(0, "127.0.0.1", r));
 		const dir = mkdtempSync(join(tmpdir(), "pdh-midstream-"));
 		const log = join(dir, "api_requests.jsonl");
 		const p = await startLoggingProxy(`http://127.0.0.1:${(up.address() as any).port}/v1`, log);
 		const resp = await fetch(`${p.url}/chat/completions`, { method: "POST", body: JSON.stringify({ stream: true, messages: [] }) });
-		expect(resp.status).toBe(200);
+		expect(resp.status).toBe(200); // headers relayed; now the upstream dies mid-stream
+		upRes.socket.destroy();
 		await expect(resp.text()).rejects.toThrow();
 		await p.close();
 		up.close();
