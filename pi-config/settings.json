@@ -1,0 +1,15 @@
+{
+  "compaction": {
+    "reserveTokens": 16384,
+    "keepRecentTokens": 20000
+  },
+  "lastChangelogVersion": "1.5.0",
+  "showCacheMissNotices": true,
+  "defaultProjectTrust": "always",
+  "treeFilterMode": "all",
+  "modelThinkingLevels": {
+    "mlx/ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit": "medium"
+  },
+  "defaultProvider": "cerebras",
+  "defaultModel": "qwen-3.8-27b"
+}

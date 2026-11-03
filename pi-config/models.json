@@ -1,0 +1,31 @@
+{
+  "providers": {
+    "mlx": {
+      "baseUrl": "http://127.0.0.1:11234/v1",
+      "api": "openai-completions",
+      "apiKey": "mlx-serve",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": true,
+        "maxTokensField": "max_tokens"
+      },
+      "models": [
+        {"id": "RecursiveSI/flint-int4", "name": "RecursiveSI/flint-int4 (mlx-serve)", "input": ["text"],
+         "contextWindow": 162816, "maxTokens": 65536, "reasoning": true,
+         "thinkingLevelMap": {"off": "none", "xhigh": "xhigh", "max": "max"}},
+        {"id": "ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit", "name": "ddalcu/Qwen3.6-35B-A3B-MLX-Serve-4bit (mlx-serve)", "input": ["text"],
+         "contextWindow": 262144, "maxTokens": 65536, "reasoning": true,
+         "thinkingLevelMap": {"off": "none", "xhigh": "xhigh", "max": "max"}},
+        {"id": "ddalcu/Qwen3.8-27B-MLX-Serve-4bit", "name": "ddalcu/Qwen3.8-27B-MLX-Serve-4bit (mlx-serve)", "input": ["text"],
+         "contextWindow": 262144, "maxTokens": 65536, "reasoning": true,
+         "thinkingLevelMap": {"off": "none", "xhigh": "xhigh", "max": "max"}},
+        {"id": "mlx-community/Qwen3-Reranker-4B-mxfp8", "name": "mlx-community/Qwen3-Reranker-4B-mxfp8 (mlx-serve)", "input": ["text"],
+         "contextWindow": 40960, "maxTokens": 20480, "reasoning": true,
+         "thinkingLevelMap": {"off": "none", "xhigh": "xhigh", "max": "max"}},
+        {"id": "ddalcu/MiMo-V2.6-Distill-Qwen-9B-MLX-Serve-6bit", "name": "ddalcu/MiMo-V2.6-Distill-Qwen-9B-MLX-Serve-6bit (mlx-serve)", "input": ["text"],
+         "contextWindow": 262144, "maxTokens": 65536, "reasoning": true,
+         "thinkingLevelMap": {"off": "none", "xhigh": "xhigh", "max": "max"}}
+      ]
+    }
+  }
+}
