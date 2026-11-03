@@ -1,0 +1,47 @@
+[project]
+name = "hypebase-sandbox"
+version = "0.1.0"
+description = "Code-execution sandbox: per-session workspace + rlimited subprocess exec"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0,<0.136.3",
+    "uvicorn>=0.30.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.14.2",
+    # Kernel-enforced network block for executed code (hyp-sxb). Not optional:
+    # without it the sandbox has no network isolation on Railway.
+    "pyseccomp>=0.1.2",
+    # Upstream client for the unix-socket LLM proxy (hyp-90f.2). h11 (the
+    # proxy's parser) arrives via uvicorn.
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+# Analysis stack available to executed code. Installed in the image so the
+# sandbox needs no egress; never imported by the service itself.
+runtime = [
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.27.0",
+    "ruff>=0.5.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
