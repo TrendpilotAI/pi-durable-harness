@@ -7,7 +7,7 @@
   "//": "pi is pinned exact; bump requires test_pi_completes_via_unix_socket_proxy to pass in the image (sandbox/scripts/test-in-image.sh).",
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.85.0",
-    "undici": "8.10.1"
+    "undici": "8.12.2"
   },
   "engines": {
     "node": ">=22.19.0"
